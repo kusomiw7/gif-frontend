@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>專業動態 GIF 生成工具</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+       body {
+           font-family: 'Inter', sans-serif;
+           background-color: #f0f4f8; /* 柔和的背景色 */
+       }
+       .ad-placeholder {
+           min-height: 100px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           text-align: center;
+           font-weight: 600;
+           color: #6b7280;
+           border: 2px dashed #9ca3af;
+           background-color: #e5e7eb;
+           border-radius: 0.5rem;
+           margin-bottom: 2rem;
+           cursor: pointer;
+           transition: background-color 0.3s;
+       }
+       .ad-placeholder:hover {
+           background-color: #d1d5db;
+       }
+       .file-input-label {
+           cursor: pointer;
+           transition: background-color 0.2s, box-shadow 0.2s;
+       }
+   </style>
+   </head>
+<body class="p-4 sm:p-8">
+
+   <div class="max-w-6xl mx-auto">
+       <div class="ad-placeholder h-24 mb-6">
+           廣告欄位 1 - 頂部橫幅 (728x90)
+       </div>
+
+       <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-100">
+           <header class="mb-8 border-b pb-4">
+               <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 text-center">
+                   專業動態圖片 GIF 生成工具
+               </h1>
+               <p class="text-center text-gray-500 mt-2 text-lg">
+                   利用您的 FastAPI 後端服務為您的圖片帶來動態感，一鍵生成並下載。
+               </p>
+           </header>
+
+           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+               
+               <div class="lg:col-span-8 space-y-8">
+                   
+                   <div class="p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-md">
+                       <h2 class="text-xl font-bold text-blue-800 mb-4 flex items-center">
+                           <span class="mr-2 text-2xl">①</span> 選擇圖片
+                       </h2>
+                       
+                       <label for="image-upload" class="file-input-label flex items-center justify-center p-4 border-2 border-dashed border-blue-400 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition duration-300 shadow-lg">
+                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 mr-3">
+                               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                           </svg>
+                           點擊上傳高品質圖片 (JPG, PNG)
+                       </label>
+                       <input type="file" id="image-upload" accept="image/jpeg, image/png" class="hidden" onchange="handleFile(event)">
+
+                       <div id="preview-container" class="mt-6 text-center">
+                           <img id="uploaded-image-preview" class="max-w-full mx-auto rounded-xl shadow-xl border-4 border-white hidden" style="max-height: 350px; transition: all 0.5s;" alt="上傳的圖片預覽">
+                           <p id="image-info" class="text-sm text-gray-500 mt-3 hidden"></p>
+                       </div>
+                   </div>
+
+                   <div id="settings-container" class="p-6 bg-yellow-50 border border-yellow-200 rounded-xl shadow-md" style="display: none;">
+                       <h2 class="text-xl font-bold text-yellow-800 mb-5 flex items-center">
+                           <span class="mr-2 text-2xl">②</span> 動畫參數設定 (由伺服器控制)
+                       </h2>
+                       
+                       <div class="space-y-4 text-center text-gray-600">
+                           <p>
+                               目前動畫效果由您的 **FastAPI 後端**固定參數生成。
+                               <br/> (例如：尺寸 300x300, 循環播放)。
+                           </p>
+                       </div>
+                   </div>
+
+                   <div class="p-6 bg-green-50 border border-green-200 rounded-xl shadow-md">
+                       <h2 class="text-xl font-bold text-green-800 mb-4 flex items-center">
+                           <span class="mr-2 text-2xl">③</span> 生成與預覽
+                       </h2>
+
+                       <button id="generate-btn" onclick="generateGif()" disabled class="w-full p-3 mb-6 bg-green-600 text-white text-lg font-bold rounded-lg shadow-xl hover:bg-green-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.01]">
+                           🔥 點擊開始生成 GIF 動畫 (發送至 Render API)
+                       </button>
+
+                       <div id="status-message" class="text-center text-sm text-red-600 mb-4 hidden"></div>
+                       
+                       <div id="loading-indicator" class="hidden text-center p-4 border border-gray-200 rounded-lg bg-white">
+                           <div class="animate-spin inline-block w-8 h-8 border-4 border-t-4 border-purple-500 border-gray-200 rounded-full"></div>
+                           <p id="loading-text" class="mt-2 text-purple-600 font-medium">圖片已送出，伺服器正在生成 GIF...</p>
+                           <p id="progress-text" class="text-sm text-gray-500 mt-1">請稍候...</p>
+                       </div>
+
+                       <div id="gif-result" class="mt-8 text-center hidden">
+                           <h3 class="text-xl font-bold text-gray-900 mb-4">成品 GIF 動畫 (由 Render API 回傳)</h3>
+                           
+                           <img id="generated-gif" src="" alt="Generated GIF Preview" class="max-w-full mx-auto border-4 border-purple-500 rounded-xl shadow-2xl">
+                           
+                           <a id="download-link" href="#" download="dynamic_fastapi_gif.gif" class="mt-6 inline-block w-full sm:w-auto px-8 py-3 bg-purple-600 text-white text-lg font-bold rounded-lg shadow-xl hover:bg-purple-700 transition duration-300 transform hover:translate-y-[-2px]">
+                               ⬇️ 下載 GIF
+                           </a>
+                       </div>
+                   </div>
+               </div>
+
+               <div class="lg:col-span-4 lg:sticky lg:top-8 self-start">
+                   <div class="ad-placeholder h-[400px]">
+                       廣告欄位 2 - 側邊直立式 (300x250 或 300x600)
+                   </div>
+               </div>
+           </div>
+       </div>
+
+       <div class="ad-placeholder h-24 mt-8 mb-6">
+           廣告欄位 3 - 底部橫幅 (728x90 或 970x250)
+       </div>
+   </div>
+
+   <script>
+       // 儲存原始文件以用於 API 提交
+       let originalFile = null;
+       
+       // VITAL: 您的 FastAPI API 網址 (務必確認服務名稱是否為 giftwno1)
+       const API_ENDPOINT = "https://giftwno1.onrender.com/generate/"; 
+       
+       
+       /**
+        * 處理文件選擇並儲存檔案物件。
+        */
+       window.handleFile = function(event) {
+           const file = event.target.files[0];
+           const previewImg = document.getElementById('uploaded-image-preview');
+           const generateBtn = document.getElementById('generate-btn');
+           const settingsContainer = document.getElementById('settings-container');
+           const imageInfo = document.getElementById('image-info');
+           
+           // 重設狀態
+           originalFile = null;
+           previewImg.classList.add('hidden');
+           settingsContainer.style.display = 'none';
+           generateBtn.disabled = true;
+           imageInfo.classList.add('hidden');
+           document.getElementById('gif-result').classList.add('hidden');
+           document.getElementById('status-message').classList.add('hidden');
+
+           if (!file || !file.type.match('image.*')) {
+               document.getElementById('status-message').textContent = '請選擇有效的圖片檔案 (JPG 或 PNG)。';
+               document.getElementById('status-message').classList.remove('hidden');
+               return;
+           }
+
+           const reader = new FileReader();
+           reader.onload = (e) => {
+               const img = new Image();
+               img.onload = () => {
+                   // 儲存原始檔案物件
+                   originalFile = file;
+                   
+                   // 更新 UI
+                   previewImg.src = e.target.result;
+                   previewImg.classList.remove('hidden');
+                   settingsContainer.style.display = 'block';
+                   generateBtn.disabled = false;
+                   imageInfo.textContent = `原始尺寸：${img.naturalWidth} x ${img.naturalHeight} 像素。`;
+                   imageInfo.classList.remove('hidden');
+               };
+               img.src = e.target.result;
+           };
+           reader.readAsDataURL(file);
+       };
+
+
+       /**
+        * 執行 GIF 動畫生成 (發送請求到後端 API)。
+        */
+       window.generateGif = async function() {
+           if (!originalFile) {
+               document.getElementById('status-message').textContent = '錯誤：請先上傳圖片。';
+               document.getElementById('status-message').classList.remove('hidden');
+               return;
+           }
+
+           const generateBtn = document.getElementById('generate-btn');
+           const loadingIndicator = document.getElementById('loading-indicator');
+           const gifResult = document.getElementById('gif-result');
+           const statusMessage = document.getElementById('status-message');
+           const loadingText = document.getElementById('loading-text');
+           
+           // UI 狀態更新
+           generateBtn.disabled = true;
+           loadingIndicator.classList.remove('hidden');
+           gifResult.classList.add('hidden');
+           statusMessage.classList.add('hidden');
+           loadingText.textContent = '圖片已送出，伺服器正在生成 GIF...';
+
+           // 建立 FormData 物件來包裝圖片
+           const formData = new FormData();
+           // 關鍵：'file' 必須與 main.py 中的 File(...) 參數名一致
+           formData.append('file', originalFile); 
+
+           try {
+               // 使用 Fetch API 發送 POST 請求到您的 FastAPI API
+               const response = await fetch(API_ENDPOINT, {
+                   method: 'POST',
+                   body: formData
+               });
+
+               if (!response.ok) {
+                   // 如果 API 回傳狀態碼不是 2xx (例如 500 錯誤)
+                   const errorText = await response.text();
+                   throw new Error(`API 請求失敗 (${response.status}): ${errorText}`);
+               }
+
+               // 接收後端回傳的 GIF 二進制數據
+               const gifBlob = await response.blob();
+               
+               // UI 狀態更新 (隱藏載入，啟用按鈕)
+               loadingIndicator.classList.add('hidden');
+               generateBtn.disabled = false;
+               
+               // 顯示預覽
+               const url = URL.createObjectURL(gifBlob);
+               const generatedGif = document.getElementById('generated-gif');
+               const downloadLink = document.getElementById('download-link');
+               
+               generatedGif.src = url;
+               downloadLink.href = url;
+               gifResult.classList.remove('hidden');
+               
+               console.log('GIF generation complete via API.');
+               
+           } catch (error) {
+               // 錯誤處理
+               loadingIndicator.classList.add('hidden');
+               generateBtn.disabled = false;
+               statusMessage.textContent = `GIF 產生失敗: ${error.message} (請檢查 API 網址是否正確)`;
+               statusMessage.classList.remove('hidden');
+               console.error("API Error:", error);
+           }
+       };
+   </script>
+</body>
+</html>
